@@ -23,3 +23,10 @@ Thumbs.db
 
 # Project specific
 *.log
+
+# Build artifacts
+chalilulz.egg-info/
+dist/
+build/
+*.whl
+*.tar.gz
