@@ -3,7 +3,7 @@
 
 import argparse, glob as G, importlib.resources as resources, json, os, pathlib, re, shutil, subprocess, sys, threading, time, urllib.request, urllib.error
 
-__version__ = "0.0.1b4"
+__version__ = "0.0.1b5"
 
 
 # Enable ANSI colors on Windows if needed
