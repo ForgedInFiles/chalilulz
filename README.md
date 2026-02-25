@@ -29,7 +29,7 @@
 ### Quick Install (pip)
 
 ```bash
-# Install globally from PyPI (coming soon)
+# Install globally
 pip install chalilulz
 
 # Or install from source

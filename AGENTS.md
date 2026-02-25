@@ -11,13 +11,6 @@ This file provides guidelines for AI agents operating in this repository.
 - **Language**: Python 3.8+
 - **Dependencies**: None (pure stdlib)
 
-| Version | Path | Lines |
-|---------|------|-------|
-| Standard | `chalilulz.py` | 868 |
-| Golfed | `golfed/chalminilulz.py` | 767 |
-
-Both versions provide identical functionality.
-
 ---
 
 ## Build / Lint / Test Commands
@@ -30,7 +23,6 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 python -m unittest tests.test_tools -v
 python -m unittest tests.test_api -v
 python -m unittest tests.test_parsing -v
-python -m unittest tests.test_both_versions -v
 python -m unittest tests.test_main -v
 python -m unittest tests.test_skills -v
 python -m unittest tests.test_utils -v
@@ -39,10 +31,9 @@ python -m unittest tests.test_do_tool_calls -v
 
 # Run single test method
 python -m unittest tests.test_tools.TestReadTool.test_read_basic -v
-python -m unittest tests.test_both_versions.TestBothVersionsRead.test_read_chalilulz -v
 
 # Syntax & Linting
-python -m py_compile chalilulz.py golfed/chalminilulz.py
+python -m py_compile chalilulz.py
 pip install ruff && ruff check .
 ```
 
@@ -59,7 +50,7 @@ pip install ruff && ruff check .
 
 ### Formatting
 
-- **Indentation**: 4 spaces (no tabs); golfed version uses 2-space
+- **Indentation**: 4 spaces (no tabs)
 - **Line length**: Max 100 chars preferred, 120 hard limit
 - **Blank lines**: Two between top-level definitions
 
@@ -160,9 +151,9 @@ class TestReadTool(unittest.TestCase):
 
 ```
 chalilulz.py              # Main application
-golfed/chalminilulz.py    # Minified version
+setup.py                  # Installation script
+pyproject.toml           # Package configuration
 tests/
-  test_both_versions.py   # Cross-version tests
   test_tools.py           # Tool function tests
   test_api.py             # API mocking tests
   test_parsing.py         # Model parsing tests
@@ -188,7 +179,5 @@ tests/
 
 ## Remember
 
-- Always test both versions when modifying functionality
-- Keep the golfed version in sync with the standard version
 - Use environment variables for configuration
 - Maintain zero external dependencies
