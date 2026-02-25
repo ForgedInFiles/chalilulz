@@ -1,6 +1,14 @@
 ---
 name: code-review
 description: Reviews code for bugs, security issues, and best practices
+license: MIT
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+compatibility:
+  - chalilulz
+  - Claude Code
+  - Cursor
+  - VS Code
+  - GitHub Copilot
 ---
 
 # Code Review Skill

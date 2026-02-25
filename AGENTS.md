@@ -62,7 +62,6 @@ pip install ruff && ruff check .
 | Constants | SCREAMING_SNAKE_CASE | `OLLAMA_HOST`, `SCHEMA` |
 | Classes | PascalCase | `Spin`, `FakeHTTPResponse` |
 | Private functions | _leading_underscore | `_r()`, `_e()` |
-| Golfed names | Single letters allowed | `_r`, `_w`, `_gl` |
 
 ### Imports
 
@@ -123,7 +122,6 @@ GOOGLE_API_KEY            # Gemini API key
 
 ## Testing Guidelines
 
-- Test both versions when modifying functionality
 - Use `unittest` framework
 - Mock HTTP calls with `@patch("urllib.request.urlopen")`
 - Create temp directories with `tempfile.mkdtemp()`

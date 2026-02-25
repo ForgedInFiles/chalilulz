@@ -1,6 +1,14 @@
 ---
 name: write-tests
 description: Writes comprehensive tests for code
+license: MIT
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+compatibility:
+  - chalilulz
+  - Claude Code
+  - Cursor
+  - VS Code
+  - GitHub Copilot
 ---
 
 # Write Tests Skill

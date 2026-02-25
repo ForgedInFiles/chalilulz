@@ -1,6 +1,14 @@
 ---
 name: refactor-code
 description: Automated code refactoring and modernization tool
+license: MIT
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+compatibility:
+  - chalilulz
+  - Claude Code
+  - Cursor
+  - VS Code
+  - GitHub Copilot
 ---
 
 # Refactor Code Skill
