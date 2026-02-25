@@ -1,3 +1,29 @@
+Metadata-Version: 2.4
+Name: chalilulz
+Version: 1.0.0
+Summary: Agentic coding CLI with multi-provider LLM support
+Author-email: Chalilulz <chalilulz@example.com>
+License: MIT
+Project-URL: Homepage, https://github.com/ForgedInFiles/chalilulz
+Project-URL: Repository, https://github.com/ForgedInFiles/chalilulz
+Keywords: cli,llm,ai,coding,openrouter,ollama,mistral,groq,gemini
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Interpreters
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Provides-Extra: dev
+Requires-Dist: ruff; extra == "dev"
+Dynamic: requires-python
+
 # chalilulz
 
 <p align="center">
