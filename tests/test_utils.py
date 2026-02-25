@@ -1,14 +1,16 @@
 """
-test_utils — UI utility functions (sep, pvw, rmd, cols)
+test_utils — UI utility functions (sep, pvw, rmd, cols, Spin)
 """
 
 import unittest
 import sys
 import os
+import threading
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from chalilulz import cols, sep, pvw, rmd
+from chalilulz import cols, sep, pvw, rmd, Spin
 
 
 class TestUIUtils(unittest.TestCase):
@@ -54,6 +56,55 @@ class TestUIUtils(unittest.TestCase):
         s = "*italic*"
         result = rmd(s)
         self.assertIn("italic", result)
+
+
+class TestSpin(unittest.TestCase):
+    def test_spin_init(self):
+        spinner = Spin()
+        self.assertIsNotNone(spinner._e)
+        self.assertIsNone(spinner._t)
+
+    def test_spin_start_creates_thread(self):
+        spinner = Spin()
+        spinner.start("Testing")
+        self.assertIsNotNone(spinner._t)
+        self.assertTrue(spinner._t.is_alive())
+        spinner.stop()
+
+    def test_spin_stop_sets_event(self):
+        spinner = Spin()
+        spinner.start("Testing")
+        self.assertFalse(spinner._e.is_set())
+        spinner.stop()
+        self.assertTrue(spinner._e.is_set())
+
+    def test_spin_stop_joins_thread(self):
+        spinner = Spin()
+        spinner.start("Testing")
+        spinner.stop()
+        # After stop, thread should not be alive
+        if spinner._t:
+            self.assertFalse(spinner._t.is_alive())
+
+    def test_spin_multiple_start_stop(self):
+        spinner = Spin()
+        spinner.start("First")
+        if spinner._t:
+            self.assertTrue(spinner._t.is_alive())
+        spinner.stop()
+        if spinner._t:
+            self.assertFalse(spinner._t.is_alive())
+        spinner.start("Second")
+        if spinner._t:
+            self.assertTrue(spinner._t.is_alive())
+        spinner.stop()
+
+    def test_spin_daemon_thread(self):
+        spinner = Spin()
+        spinner.start("Testing")
+        if spinner._t:
+            self.assertTrue(spinner._t.daemon)
+        spinner.stop()
 
 
 if __name__ == "__main__":

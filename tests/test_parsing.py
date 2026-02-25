@@ -139,5 +139,18 @@ class TestGetRequiredKey(unittest.TestCase):
         self.assertIsNone(key)
 
 
+class TestDefaultProvider(unittest.TestCase):
+    def test_default_model_uses_openrouter_prefix(self):
+        # Reload chalilulz to get fresh defaults unaffected by other tests
+        import importlib
+        import chalilulz
+
+        importlib.reload(chalilulz)
+        # When imported as module (not __main__), defaults should be OpenRouter
+        self.assertTrue(chalilulz.MODEL.startswith("openrouter:"))
+        self.assertEqual(chalilulz.PROVIDER, "openrouter")
+        self.assertEqual(chalilulz.ACTUAL_MODEL, "arcee-ai/trinity-large-preview:free")
+
+
 if __name__ == "__main__":
     unittest.main()

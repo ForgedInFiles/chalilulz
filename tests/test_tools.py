@@ -169,12 +169,20 @@ class TestBashTool(unittest.TestCase):
         self.assertIn("[exit 0]", result)
 
     def test_bash_with_cwd(self):
-        result = _b({"cmd": "pwd", "cwd": "/tmp"})
-        # Should output some path
+        # Use Python to print cwd cross-platform
+        import sys
+
+        cmd = f'"{sys.executable}" -c "import os; print(os.getcwd())"'
+        result = _b({"cmd": cmd, "cwd": "/tmp"})
+        # Should output a path
         self.assertTrue(result.strip() != "")
 
     def test_bash_error(self):
-        result = _b({"cmd": "false"})
+        # Use Python to exit with code 1 cross-platform
+        import sys
+
+        cmd = f'"{sys.executable}" -c "import sys; sys.exit(1)"'
+        result = _b({"cmd": cmd})
         self.assertIn("[exit 1]", result)
 
 

@@ -3,6 +3,28 @@
 
 import argparse, glob as G, json, os, pathlib, re, shutil, subprocess, sys, threading, time, urllib.request, urllib.error
 
+
+# Enable ANSI colors on Windows if needed
+def _enable_windows_ansi():
+    if sys.platform == "win32":
+        try:
+            from ctypes import windll, byref
+            from ctypes.wintypes import DWORD
+
+            ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+            IN_HANDLE = -10
+            CONSOLE_MODE = DWORD()
+            h = windll.kernel32.GetStdHandle(IN_HANDLE)
+            if windll.kernel32.GetConsoleMode(h, byref(CONSOLE_MODE)):
+                if not (CONSOLE_MODE.value & ENABLE_VIRTUAL_TERMINAL_PROCESSING):
+                    CONSOLE_MODE.value |= ENABLE_VIRTUAL_TERMINAL_PROCESSING
+                    windll.kernel32.SetConsoleMode(h, CONSOLE_MODE)
+        except Exception:
+            pass  # Silently ignore - colors may not work
+
+
+_enable_windows_ansi()
+
 # ─ ansi
 R = "\033[0m"
 Bo = "\033[1m"
@@ -19,7 +41,9 @@ I = "\033[3m"
 # ─ args
 def _get_default_args():
     class DefaultArgs:
-        model = os.getenv("CHALILULZ_MODEL", "ministral-3:latest")
+        model = os.getenv(
+            "CHALILULZ_MODEL", "openrouter:arcee-ai/trinity-large-preview:free"
+        )
         ollama_host = os.getenv("CHALILULZ_OLLAMA_HOST", "http://localhost:11434")
         mistral_key = os.getenv("MISTRAL_API_KEY", "")
         groq_key = os.getenv("GROQ_API_KEY", "")
@@ -35,7 +59,9 @@ def _get_default_args():
 
 if __name__ == "__main__":
     A = argparse.ArgumentParser(prog="chalilulz")
-    A.add_argument("--model", "-m", default="ministral-3:latest")
+    A.add_argument(
+        "--model", "-m", default="openrouter:arcee-ai/trinity-large-preview:free"
+    )
     A.add_argument(
         "--ollama-host", default="http://localhost:11434", help="Ollama API host"
     )

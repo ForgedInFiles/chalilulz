@@ -66,6 +66,18 @@ def mock_urlopen_error(code, error_data):
 
 
 class TestOpenRouterAPI(unittest.TestCase):
+    def setUp(self):
+        import chalilulz
+
+        self.orig_ACTUAL_MODEL = chalilulz.ACTUAL_MODEL
+        self.orig_PROVIDER = chalilulz.PROVIDER
+
+    def tearDown(self):
+        import chalilulz
+
+        chalilulz.ACTUAL_MODEL = self.orig_ACTUAL_MODEL
+        chalilulz.PROVIDER = self.orig_PROVIDER
+
     @patch("urllib.request.urlopen")
     def test_call_openrouter_success(self, mock_urlopen):
         mock_urlopen.side_effect = mock_urlopen_success(
@@ -118,6 +130,20 @@ class TestOpenRouterAPI(unittest.TestCase):
 
 
 class TestOllamaAPI(unittest.TestCase):
+    def setUp(self):
+        import chalilulz
+
+        self.orig_ACTUAL_MODEL = chalilulz.ACTUAL_MODEL
+        self.orig_PROVIDER = chalilulz.PROVIDER
+        self.orig_OLLAMA_HOST = chalilulz.OLLAMA_HOST
+
+    def tearDown(self):
+        import chalilulz
+
+        chalilulz.ACTUAL_MODEL = self.orig_ACTUAL_MODEL
+        chalilulz.PROVIDER = self.orig_PROVIDER
+        chalilulz.OLLAMA_HOST = self.orig_OLLAMA_HOST
+
     @patch("urllib.request.urlopen")
     def test_call_ollama_success(self, mock_urlopen):
         mock_urlopen.side_effect = mock_urlopen_success(
@@ -139,6 +165,24 @@ class TestOllamaAPI(unittest.TestCase):
 
 
 class TestOpenAICompatible(unittest.TestCase):
+    def setUp(self):
+        import chalilulz
+
+        self.orig_ACTUAL_MODEL = chalilulz.ACTUAL_MODEL
+        self.orig_PROVIDER = chalilulz.PROVIDER
+        self.orig_MISTRAL_KEY = chalilulz.MISTRAL_KEY
+        self.orig_GROQ_KEY = chalilulz.GROQ_KEY
+        self.orig_GEMINI_KEY = chalilulz.GEMINI_KEY
+
+    def tearDown(self):
+        import chalilulz
+
+        chalilulz.ACTUAL_MODEL = self.orig_ACTUAL_MODEL
+        chalilulz.PROVIDER = self.orig_PROVIDER
+        chalilulz.MISTRAL_KEY = self.orig_MISTRAL_KEY
+        chalilulz.GROQ_KEY = self.orig_GROQ_KEY
+        chalilulz.GEMINI_KEY = self.orig_GEMINI_KEY
+
     @patch("urllib.request.urlopen")
     def test_call_mistral_success(self, mock_urlopen):
         mock_urlopen.side_effect = mock_urlopen_success(

@@ -46,6 +46,7 @@ mypy --ignore-missing-imports chalilulz.py
 
 ### Execute the CLI
 ```bash
+python chalilulz.py --model openrouter:arcee-ai/trinity-large-preview:free
 python chalilulz.py --model mistral:mistral-small-latest --mistral-key $MISTRAL_API_KEY
 python chalilulz.py --model ollama:llama2 --ollama-host http://localhost:11434
 ```
@@ -148,7 +149,8 @@ import urllib.request
 - The file is both importable as a module and executable as a script.
 
 ## Repository-Specific Notes
-- The `--model` default is `ministral-3:latest` (Ollama).
+- The `--model` default is `openrouter:arcee-ai/trinity-large-preview:free`.
 - If a provider requires an API key and it's missing, the CLI prints an error and exits.
 - The `NO_TOOLS_MODELS` set tracks models that returned 400 on tool use; they fall back to XML mode.
 - Tool output includes styled icons (`TIC` dict); keep them as emojis/strings.
+- **Cross-platform**: ANSI colors are auto-enabled on Windows 10+ via VT100. The `bash` tool uses the system's default shell (`/bin/sh` on Unix, `cmd.exe` on Windows). Commands should be appropriate for the target platform.
