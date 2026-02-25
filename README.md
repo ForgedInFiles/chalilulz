@@ -3,8 +3,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.8+-blue.svg" alt="Python 3.8+">
   <img src="https://img.shields.io/badge/LLM-Cli-orange.svg" alt="LLM CLI">
-  <img src="https://img.shields.io/badge/open-source-green.svg" alt="Open Source">
-  <img src="https://img.shields.io/badge/platform-cross--platform-yellow.svg" alt="Cross Platform">
+  <img src="https://img.shields.io/badge/Open-Source-green.svg" alt="Open Source">
+  <img src="https://img.shields.io/badge/Platform-Cross--Platform-yellow.svg" alt="Cross Platform">
 </p>
 
 <p align="center">
@@ -14,7 +14,18 @@
 
 ---
 
-## ✨ Features
+## Two Versions
+
+| Version | File | Description |
+|---------|------|-------------|
+| **Standard** | `chalilulz.py` | Full-featured, readable source (867 lines) |
+| **Golfed** | `golfed/chalminilulz.py` | Minified, compact version (310 lines) |
+
+Both versions provide identical functionality — choose based on your preference for code readability vs. compactness.
+
+---
+
+## Features
 
 - **Multi-Provider Support** — Seamlessly switch between OpenRouter, Ollama, Mistral, Groq, and Gemini
 - **Built-in Tools** — File operations, grep search, glob patterns, bash execution, and more
@@ -24,7 +35,9 @@
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
+
+### Standard Version
 
 ```bash
 # Clone and run
@@ -32,7 +45,21 @@ python chalilulz.py
 
 # Or set a specific model
 python chalilulz.py --model openrouter:arcee-ai/trinity-large-preview:free
+```
 
+### Golfed Version
+
+```bash
+# Run the minified version
+python golfed/chalminilulz.py
+
+# With custom model
+python golfed/chalminilulz.py --model ollama:llama2
+```
+
+### Provider Examples
+
+```bash
 # Use with Ollama (default)
 python chalilulz.py --model ollama:llama2
 
@@ -48,7 +75,7 @@ python chalilulz.py --model gemini:gemini-2.0-flash --gemini-key $GOOGLE_API_KEY
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### Requirements
 
@@ -68,62 +95,74 @@ python chalilulz.py --model gemini:gemini-2.0-flash --gemini-key $GOOGLE_API_KEY
 
 ---
 
-## 🛠️ Available Tools
+## Available Tools
 
 | Tool | Description |
 |------|-------------|
-| `r` | Read files with syntax highlighting |
-| `w` | Write content to files |
-| `e` | Edit specific sections of files |
-| `gl` | Glob pattern matching for files |
-| `gp` | Grep search through file contents |
-| `b` | Execute bash commands |
+| `read` | Read files with line numbers |
+| `write` | Write/create files (auto mkdir) |
+| `edit` | Replace unique string in files |
+| `glob` | Find files by glob pattern sorted by mtime |
+| `grep` | Search files by regex |
+| `bash` | Execute shell commands |
 | `ls` | List directory contents |
-| `mk` | Create new directories |
-| `rm` | Remove files or directories |
+| `mkdir` | Create directories recursively |
+| `rm` | Delete files or directories |
 | `mv` | Move/rename files |
-| `cp` | Copy files |
-| `fd` | Find files by name |
-| `sk` | Execute agent skills |
+| `cp` | Copy files or directories |
+| `find` | Recursive find by name pattern |
+| `load_skill` | Load full skill instructions by name |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-chalilulz.py          # Main CLI application
-chalminilulz.py       # Lightweight variant
-tests/                # Test suite
-  ├── test_parsing.py
-  ├── test_schema.py
-  ├── test_tools.py
-  └── test_api.py
-AGENTS.md             # Development guidelines
+chalilulz.py              # Standard version (full source)
+golfed/
+  chalminilulz.py         # Golfed version (minified)
+tests/                    # Comprehensive test suite
+  test_both_versions.py   # Tests for both versions
+  test_tools.py           # Tool function tests
+  test_parsing.py         # Model parsing tests
+  test_api.py             # API call tests
+  test_skills.py          # Skills loading tests
+  test_schema.py          # Schema generation tests
+  test_main.py            # Main loop tests
+  test_utils.py           # Utility function tests
+  test_do_tool_calls.py   # Tool call execution tests
+AGENTS.md                 # Development guidelines
 ```
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run all tests
 python -m unittest discover -s tests -p 'test_*.py' -v
 
 # Run specific test module
-python -m unittest tests.test_parsing -v
+python -m unittest tests.test_both_versions -v
 python -m unittest tests.test_tools -v
+python -m unittest tests.test_parsing -v
+
+# Test both versions specifically
+python -m unittest tests.test_both_versions.TestBothVersionsTools -v
+python -m unittest tests.test_both_versions.TestBothVersionsAPI -v
 
 # Syntax check
 python -m py_compile chalilulz.py
+python -m py_compile golfed/chalminilulz.py
 
 # Lint (requires ruff)
 pip install ruff
-ruff check chalilulz.py tests/
+ruff check chalilulz.py golfed/chalminilulz.py tests/
 ```
 
 ---
 
-## 💡 Usage Examples
+## Usage Examples
 
 ### Interactive Chat
 
@@ -134,7 +173,7 @@ $ python chalilulz.py
 
 ### With Custom Skills
 
-Place skill files in `.skills/` directory and the CLI will automatically load them:
+Place skill files in `.skills/` directory:
 
 ```
 .skills/
@@ -150,11 +189,12 @@ During runtime, use `/model` command to switch providers:
 
 ```
 /model ollama:codellama
+/model groq:llama-3.1-70b-versatile
 ```
 
 ---
 
-## 🔧 Configuration
+## Configuration
 
 ### Model Syntax
 
@@ -162,7 +202,7 @@ During runtime, use `/model` command to switch providers:
 provider:model-id
 ```
 
-**Supported Providers:**
+### Supported Providers
 
 | Prefix | Endpoint |
 |--------|----------|
@@ -174,12 +214,12 @@ provider:model-id
 
 ---
 
-## 📝 License
+## License
 
 MIT License — Feel free to use, modify, and distribute.
 
 ---
 
 <p align="center">
-  <sub>Built with ♡ for developers who love CLI tools</sub>
+  Built with love for developers who love CLI tools
 </p>
