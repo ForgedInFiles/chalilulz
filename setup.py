@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="chalilulz",
-    version="0.0.1b0",
+    version="0.0.1b2",
     py_modules=["chalilulz"],
     install_requires=[],
     python_requires=">=3.8",

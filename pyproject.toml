@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "chalilulz"
-version = "0.0.1b0"
+version = "0.0.1b2"
 description = "Agentic coding CLI with multi-provider LLM support"
 readme = "README.md"
 license = {text = "MIT"}
