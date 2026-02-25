@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: chalilulz
-Version: 0.0.1b5
+Version: 0.0.1b6
 Summary: Agentic coding CLI with multi-provider LLM support
 Author-email: Chalilulz <chalilulz@example.com>
 License: MIT
@@ -43,10 +43,14 @@ Requires-Dist: ruff; extra == "dev"
 ## Features
 
 - **Multi-Provider Support** — Seamlessly switch between OpenRouter, Ollama, Mistral, Groq, and Gemini
-- **Built-in Tools** — File operations, grep search, glob patterns, bash execution, and more
-- **Agent Skills** — Load custom skill sets from `.skills/` directory
-- **Cross-Platform** — Works on Linux, macOS, and Windows with ANSI color support
-- **Zero Dependencies** — Pure Python standard library — no external packages required
+- **Streaming Responses** — Token-by-token output directly in the terminal
+- **Agent Safety Guardrails** — 25-round max agent loop guard and interactive `[y/N]` prompts before executing dangerous tools (like `bash`, `rm`, `write`)
+- **Interactive REPL** — Supports `readline` tab-completion for `/commands` and local file paths!
+- **Context Window Truncation** — Dynamic bounding up to ~60k tokens to prevent API capacity errors
+- **Session Persistence** — Use `/save <name>` and `/load <name>` to seamlessly pause and resume work
+- **Gorgeous ANSI Rendering** — Renders markdown blocks, bold headings (`#`), and list items (`-`) natively
+- **Agent Skills** — Load custom system instruction sets from `.skills/` directory
+- **Zero Dependencies** — Pure Python standard library inside — no massive packages required
 
 ---
 
@@ -55,37 +59,13 @@ Requires-Dist: ruff; extra == "dev"
 ### Quick Install (pip)
 
 ```bash
-# Install globally
-pip install chalilulz
-
-# Or install from source
+# Install globally via git
 pip install git+https://github.com/ForgedInFiles/chalilulz.git
 
 # Or install locally (editable mode)
 git clone https://github.com/ForgedInFiles/chalilulz.git
 cd chalilulz
 pip install -e .
-```
-
-### Manual Install
-
-```bash
-# Clone the repository
-git clone https://github.com/ForgedInFiles/chalilulz.git
-cd chalilulz
-
-# Make executable and add to PATH
-chmod +x chalilulz.py
-
-# Option 1: Add to your PATH (Linux/macOS)
-sudo ln -s "$(pwd)/chalilulz.py" /usr/local/bin/chalilulz
-
-# Option 2: Add to PATH on Windows (PowerShell)
-# Add the folder to your PATH environment variable
-
-# Option 3: Use directly
-./chalilulz.py
-python chalilulz.py
 ```
 
 ### Requirements
@@ -113,13 +93,26 @@ chalilulz --model mistral:mistral-small-latest --mistral-key $MISTRAL_API_KEY
 # Run with Groq
 chalilulz --model groq:llama-3.1-70b-versatile --groq-key $GROQ_API_KEY
 
-# Run with Gemini
-chalilulz --model gemini:gemini-2.0-flash --gemini-key $GOOGLE_API_KEY
+# Auto-approve tool execution
+chalilulz --yes
 ```
 
 ---
 
-## Environment Variables
+## Configuration
+
+You can configure persistent defaults by creating `~/.config/chalilulz/config.json`:
+
+```json
+{
+  "model": "openrouter:anthropic/claude-3.5-sonnet",
+  "ollama_host": "http://localhost:11434",
+  "mistral_key": "YOUR_MISTRAL_KEY",
+  "yes": false
+}
+```
+
+Or you can use Environment Variables:
 
 | Variable | Description |
 |----------|-------------|
@@ -138,8 +131,9 @@ chalilulz --model gemini:gemini-2.0-flash --gemini-key $GOOGLE_API_KEY
 |------|-------------|
 | `read` | Read files with line numbers |
 | `write` | Write/create files (auto mkdir) |
-| `edit` | Replace unique string in files |
-| `glob` | Find files by glob pattern sorted by mtime |
+| `edit` | Replace a unique string in files |
+| `multi_edit` | Apply large non-contiguous patches to files via JSON array |
+| `glob` | Find files by glob pattern sorted by mtime (ignores `.git/`, `node_modules/`, etc) |
 | `grep` | Search files by regex |
 | `bash` | Execute shell commands |
 | `ls` | List directory contents |
@@ -152,99 +146,18 @@ chalilulz --model gemini:gemini-2.0-flash --gemini-key $GOOGLE_API_KEY
 
 ---
 
-## Project Structure
+## REPL Commands
 
-```
-chalilulz.py              # Main application
-setup.py                  # Installation script
-pyproject.toml           # Package configuration
-tests/                    # Comprehensive test suite
-  test_tools.py           # Tool function tests
-  test_parsing.py         # Model parsing tests
-  test_api.py             # API call tests
-  test_skills.py          # Skills loading tests
-  test_schema.py          # Schema generation tests
-  test_main.py            # Main loop tests
-  test_utils.py           # Utility function tests
-  test_do_tool_calls.py   # Tool call execution tests
-AGENTS.md                 # Development guidelines
-```
-
----
-
-## Testing
-
-```bash
-# Run all tests
-python -m unittest discover -s tests -p 'test_*.py' -v
-
-# Run specific test module
-python -m unittest tests.test_tools -v
-python -m unittest tests.test_parsing -v
-python -m unittest tests.test_api -v
-
-# Run single test method
-python -m unittest tests.test_tools.TestReadTool.test_read_basic -v
-
-# Syntax check
-python -m py_compile chalilulz.py
-
-# Lint (requires ruff)
-pip install ruff
-ruff check chalilulz.py tests/
-```
-
----
-
-## Usage Examples
-
-### Interactive Chat
-
-```bash
-$ chalilulz
-> Write a hello world program in Python
-```
-
-### With Custom Skills
-
-Place skill files in `.skills/` directory:
-
-```
-.skills/
-├── code-review/
-│   └── SKILL.md
-└── refactor/
-    └── SKILL.md
-```
-
-### Model Switching
-
-During runtime, use `/model` command to switch providers:
-
-```
-/model ollama:codellama
-/model groq:llama-3.1-70b-versatile
-```
-
----
-
-## Configuration
-
-### Model Syntax
-
-```
-provider:model-id
-```
-
-### Supported Providers
-
-| Prefix | Endpoint |
-|--------|----------|
-| `ollama:` | `http://localhost:11434` |
-| `mistral:` | `https://api.mistral.ai/v1` |
-| `groq:` | `https://api.groq.com/openai/v1` |
-| `gemini:` | `https://generativelanguage.googleapis.com/v1beta/openai` |
-| `openrouter:` | `https://openrouter.ai/api/v1` |
+During an active session, you can use the following commands:
+- `/model <slug>` - Switch provider/model live (e.g., `/model ollama:codellama`)
+- `/save <name>` - Save the current session context to `~/.local/share/chalilulz/sessions/`
+- `/load <name>` - Load a previously saved session context
+- `/yes` - Enable auto-approval for dangerous tool execution (`bash`, `rm`, `write`, `edit`)
+- `/no` - Disable auto-approval (default behavior)
+- `/skills list` - List available `.skills/` bundles
+- `/c` - Clear the terminal
+- `/q` or `exit` - Quit application
+- `/help` - Show command help
 
 ---
 

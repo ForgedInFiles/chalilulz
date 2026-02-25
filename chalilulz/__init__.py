@@ -3,7 +3,7 @@
 
 import argparse, glob as G, importlib.resources as resources, json, os, pathlib, re, shutil, subprocess, sys, threading, time, urllib.request, urllib.error
 
-__version__ = "0.0.1b6"
+__version__ = "0.0.1b7"
 
 
 # Enable ANSI colors on Windows if needed
@@ -55,12 +55,18 @@ def _get_default_args():
         model = conf.get("model") or os.getenv(
             "CHALILULZ_MODEL", "openrouter:arcee-ai/trinity-large-preview:free"
         )
-        ollama_host = conf.get("ollama_host") or os.getenv("CHALILULZ_OLLAMA_HOST", "http://localhost:11434")
+        ollama_host = conf.get("ollama_host") or os.getenv(
+            "CHALILULZ_OLLAMA_HOST", "http://localhost:11434"
+        )
         mistral_key = conf.get("mistral_key") or os.getenv("MISTRAL_API_KEY", "")
         groq_key = conf.get("groq_key") or os.getenv("GROQ_API_KEY", "")
         gemini_key = conf.get("gemini_key") or os.getenv("GOOGLE_API_KEY", "")
-        mistral_host = conf.get("mistral_host") or os.getenv("MISTRAL_HOST", "https://api.mistral.ai/v1")
-        groq_host = conf.get("groq_host") or os.getenv("GROQ_HOST", "https://api.groq.com/openai/v1")
+        mistral_host = conf.get("mistral_host") or os.getenv(
+            "MISTRAL_HOST", "https://api.mistral.ai/v1"
+        )
+        groq_host = conf.get("groq_host") or os.getenv(
+            "GROQ_HOST", "https://api.groq.com/openai/v1"
+        )
         gemini_host = conf.get("gemini_host") or os.getenv(
             "GEMINI_HOST", "https://generativelanguage.googleapis.com/v1beta/openai"
         )
@@ -69,54 +75,38 @@ def _get_default_args():
     return DefaultArgs()
 
 
-if __name__ == "__main__":
-    _def = _get_default_args()
-    A = argparse.ArgumentParser(prog="chalilulz")
-    A.add_argument("--version", "-v", action="version", version=f"%(prog)s {__version__}")
-    A.add_argument(
-        "--model", "-m", default=_def.model
-    )
-    A.add_argument(
-        "--ollama-host", default=_def.ollama_host, help="Ollama API host"
-    )
-    A.add_argument(
-        "--mistral-key", default=_def.mistral_key, help="Mistral API key"
-    )
-    A.add_argument(
-        "--groq-key", default=_def.groq_key, help="Groq API key"
-    )
-    A.add_argument(
-        "--gemini-key", default=_def.gemini_key, help="Google Gemini API key"
-    )
-    A.add_argument(
-        "--mistral-host", default=_def.mistral_host, help="Mistral API base URL"
-    )
-    A.add_argument(
-        "--groq-host", default=_def.groq_host, help="Groq API base URL"
-    )
-    A.add_argument(
-        "--gemini-host", default=_def.gemini_host, help="Gemini OpenAI-compatible base URL"
-    )
-    A.add_argument(
-        "--yes", "-y", action="store_true", default=_def.yes, help="Auto-approve tool execution"
-    )
-    ARGS = A.parse_args()
+# Set initial values (defaults for module-level usage, overridden by main())
+MODEL = "openrouter:arcee-ai/trinity-large-preview:free"
+# Parse provider from MODEL
+if MODEL.startswith("openrouter:"):
+    PROVIDER = "openrouter"
+    ACTUAL_MODEL = MODEL[len("openrouter:") :]
+elif MODEL.startswith("ollama:"):
+    PROVIDER = "ollama"
+    ACTUAL_MODEL = MODEL[len("ollama:") :]
+elif MODEL.startswith("mistral:"):
+    PROVIDER = "mistral"
+    ACTUAL_MODEL = MODEL[len("mistral:") :]
+elif MODEL.startswith("groq:"):
+    PROVIDER = "groq"
+    ACTUAL_MODEL = MODEL[len("groq:") :]
+elif MODEL.startswith("gemini:"):
+    PROVIDER = "gemini"
+    ACTUAL_MODEL = MODEL[len("gemini:") :]
 else:
-    ARGS = _get_default_args()
+    PROVIDER = None
+    ACTUAL_MODEL = MODEL
+KEY = ""
+OLLAMA_HOST = "http://localhost:11434"
+MISTRAL_KEY = ""
+MISTRAL_HOST = "https://api.mistral.ai/v1"
+GROQ_KEY = ""
+GROQ_HOST = "https://api.groq.com/openai/v1"
+GEMINI_KEY = ""
+GEMINI_HOST = "https://generativelanguage.googleapis.com/v1beta/openai"
+AUTO_APPROVE = False
 
-MODEL = ARGS.model
-KEY = os.environ.get("OPENROUTER_API_KEY", "")
-OLLAMA_HOST = ARGS.ollama_host
-MISTRAL_KEY = ARGS.mistral_key
-MISTRAL_HOST = ARGS.mistral_host
-GROQ_KEY = ARGS.groq_key
-GROQ_HOST = ARGS.groq_host
-GEMINI_KEY = ARGS.gemini_key
-GEMINI_HOST = ARGS.gemini_host
-AUTO_APPROVE = getattr(ARGS, "yes", False)
 
-
-# ─ tools
 def _r(a):
     try:
         with open(a["path"], encoding="utf-8", errors="replace") as f:
@@ -175,8 +165,19 @@ def _me(a):
 def _ig(p):
     """Check if path is ignored (simple/common ignores)"""
     parts = pathlib.Path(p).parts
-    for x in {".git", "__pycache__", "node_modules", "venv", ".venv", ".ruff_cache", "dist", "build", ".pytest_cache"}:
-        if x in parts: return True
+    for x in {
+        ".git",
+        "__pycache__",
+        "node_modules",
+        "venv",
+        ".venv",
+        ".ruff_cache",
+        "dist",
+        "build",
+        ".pytest_cache",
+    }:
+        if x in parts:
+            return True
     return False
 
 
@@ -431,12 +432,6 @@ def update_model(model_str):
     PROVIDER, ACTUAL_MODEL = parse_model(model_str)
 
 
-# Set initial values
-PROVIDER = None
-ACTUAL_MODEL = None
-update_model(MODEL)
-
-
 def get_required_key(provider):
     """Return the API key variable for the given provider, or None if no key needed."""
     if provider == "openrouter":
@@ -680,11 +675,18 @@ def read_sse_stream(resp):
                 for tc in delta["tool_calls"]:
                     idx = tc["index"]
                     if idx not in tool_calls:
-                        tool_calls[idx] = {"id": tc.get("id", ""), "type": "function", "function": {"name": "", "arguments": ""}}
-                    if tc.get("id"): tool_calls[idx]["id"] = tc["id"]
+                        tool_calls[idx] = {
+                            "id": tc.get("id", ""),
+                            "type": "function",
+                            "function": {"name": "", "arguments": ""},
+                        }
+                    if tc.get("id"):
+                        tool_calls[idx]["id"] = tc["id"]
                     fn = tc.get("function", {})
-                    if fn.get("name"): tool_calls[idx]["function"]["name"] += fn["name"]
-                    if fn.get("arguments"): tool_calls[idx]["function"]["arguments"] += fn["arguments"]
+                    if fn.get("name"):
+                        tool_calls[idx]["function"]["name"] += fn["name"]
+                    if fn.get("arguments"):
+                        tool_calls[idx]["function"]["arguments"] += fn["arguments"]
         except Exception:
             pass
     if tool_calls:
@@ -718,7 +720,10 @@ def read_ndjson_stream(resp):
             if "tool_calls" in msg and msg["tool_calls"]:
                 full_msg["tool_calls"] = msg["tool_calls"]
             if data.get("done"):
-                usage = {"prompt_tokens": data.get("prompt_eval_count", 0), "completion_tokens": data.get("eval_count", 0)}
+                usage = {
+                    "prompt_tokens": data.get("prompt_eval_count", 0),
+                    "completion_tokens": data.get("eval_count", 0),
+                }
         except Exception:
             pass
     if full_msg["content"]:
@@ -762,7 +767,6 @@ def call_openrouter(msgs, sysp, force_no_tools=False):
         raise RuntimeError(f"HTTP {e.code}: {raw[:300]}")
 
 
-
 def call_ollama(msgs, sysp, force_no_tools=False):
     use_tools = not force_no_tools and ACTUAL_MODEL not in NO_TOOLS_MODELS
     body = {
@@ -790,7 +794,6 @@ def call_ollama(msgs, sysp, force_no_tools=False):
             print(f" {Y}⚠ model doesn't support tools — switching to XML mode{R}")
             return call_ollama(msgs, sysp, force_no_tools=True)
         raise RuntimeError(f"HTTP {e.code}: {raw[:300]}")
-
 
 
 def call_openai_compatible(
@@ -835,7 +838,6 @@ def call_openai_compatible(
                 auth_header=auth_header,
             )
         raise RuntimeError(f"HTTP {e.code}: {raw[:300]}")
-
 
 
 def call_mistral(msgs, sysp, force_no_tools=False):
@@ -895,8 +897,18 @@ def rmd(t):
     t = re.sub(r"`([^`\n]+)`", f"{Y}\\1{R}", t)
     t = re.sub(r"\*\*(.+?)\*\*", f"{Bo}\\1{R}", t)
     t = re.sub(r"\*([^*\n]+)\*", f"{I}\\1{R}", t)
-    t = re.sub(r"^(#{1,6})\s+(.+)$", lambda m: f"{Bo}{C}{m.group(1)} {m.group(2)}{R}", t, flags=re.M)
-    t = re.sub(r"^(\s*[-*])\s+(.+)$", lambda m: f"{Bo}{M}{m.group(1)}{R} {m.group(2)}", t, flags=re.M)
+    t = re.sub(
+        r"^(#{1,6})\s+(.+)$",
+        lambda m: f"{Bo}{C}{m.group(1)} {m.group(2)}{R}",
+        t,
+        flags=re.M,
+    )
+    t = re.sub(
+        r"^(\s*[-*])\s+(.+)$",
+        lambda m: f"{Bo}{M}{m.group(1)}{R} {m.group(2)}",
+        t,
+        flags=re.M,
+    )
     return t
 
 
@@ -959,34 +971,113 @@ def _do_tool_calls(calls, msgs, xml_mode):
 
 
 # ─ main
-def main():
+def main(argv=None):
+    # Parse command line arguments
+    global \
+        MODEL, \
+        KEY, \
+        OLLAMA_HOST, \
+        MISTRAL_KEY, \
+        MISTRAL_HOST, \
+        GROQ_KEY, \
+        GROQ_HOST, \
+        GEMINI_KEY, \
+        GEMINI_HOST, \
+        AUTO_APPROVE, \
+        PROVIDER, \
+        ACTUAL_MODEL
+
+    _def = _get_default_args()
+    A = argparse.ArgumentParser(prog="chalilulz")
+    A.add_argument(
+        "--version", "-v", action="version", version=f"%(prog)s {__version__}"
+    )
+    A.add_argument(
+        "--model",
+        "-m",
+        default=_def.model,
+        help="LLM model (provider:vendor/model:variant)",
+    )
+    A.add_argument("--ollama-host", default=_def.ollama_host, help="Ollama API host")
+    A.add_argument("--mistral-key", default=_def.mistral_key, help="Mistral API key")
+    A.add_argument("--groq-key", default=_def.groq_key, help="Groq API key")
+    A.add_argument(
+        "--gemini-key", default=_def.gemini_key, help="Google Gemini API key"
+    )
+    A.add_argument(
+        "--mistral-host", default=_def.mistral_host, help="Mistral API base URL"
+    )
+    A.add_argument("--groq-host", default=_def.groq_host, help="Groq API base URL")
+    A.add_argument(
+        "--gemini-host",
+        default=_def.gemini_host,
+        help="Gemini OpenAI-compatible base URL",
+    )
+    A.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        default=_def.yes,
+        help="Auto-approve tool execution",
+    )
+    ARGS = A.parse_args(argv)
+
+    # Set globals from args
+    MODEL = ARGS.model
+    KEY = os.environ.get("OPENROUTER_API_KEY", "")
+    OLLAMA_HOST = ARGS.ollama_host
+    MISTRAL_KEY = ARGS.mistral_key
+    MISTRAL_HOST = ARGS.mistral_host
+    GROQ_KEY = ARGS.groq_key
+    GROQ_HOST = ARGS.groq_host
+    GEMINI_KEY = ARGS.gemini_key
+    GEMINI_HOST = ARGS.gemini_host
+    AUTO_APPROVE = ARGS.yes
+
+    # Initialize provider and actual model
+    update_model(MODEL)
+
     try:
         import readline, glob
-        COMMANDS = ["/model ", "/skills", "/save ", "/load ", "/yes", "/no", "/q", "/c", "/help", "exit", "quit"]
+
+        COMMANDS = [
+            "/model ",
+            "/skills",
+            "/save ",
+            "/load ",
+            "/yes",
+            "/no",
+            "/q",
+            "/c",
+            "/help",
+            "exit",
+            "quit",
+        ]
+
         def completer(text, state):
             line = readline.get_line_buffer()
             if not line or line.startswith("/"):
                 matches = [c for c in COMMANDS if c.startswith(text)]
             else:
-                matches = glob.glob(text + '*')
+                matches = glob.glob(text + "*")
                 matches = [m + os.sep if os.path.isdir(m) else m for m in matches]
             try:
                 return matches[state]
             except IndexError:
                 return None
+
         readline.set_completer(completer)
         readline.parse_and_bind("tab: complete")
         readline.set_completer_delims(" \t\n;")
     except ImportError:
         pass
 
-    global MODEL, AUTO_APPROVE
     # Check API key for current provider
     required_key = get_required_key(PROVIDER)
     if required_key is not None and not required_key:
         print(f"\n {Re}✗ set API key for {PROVIDER} provider{R}\n")
         sys.exit(1)
-        
+
     MAX_TOOL_ROUNDS = 25
     cwd = os.getcwd()
     skills = load_skills()
@@ -1036,14 +1127,28 @@ Guidelines:
                 continue
             if ui.startswith("/save "):
                 name = ui[6:].strip()
-                p = pathlib.Path.home() / ".local" / "share" / "chalilulz" / "sessions" / f"{name}.json"
+                p = (
+                    pathlib.Path.home()
+                    / ".local"
+                    / "share"
+                    / "chalilulz"
+                    / "sessions"
+                    / f"{name}.json"
+                )
                 p.parent.mkdir(parents=True, exist_ok=True)
                 p.write_text(json.dumps(msgs), encoding="utf-8")
                 print(f"\n {Gr}✓ saved session to {name}{R}")
                 continue
             if ui.startswith("/load "):
                 name = ui[6:].strip()
-                p = pathlib.Path.home() / ".local" / "share" / "chalilulz" / "sessions" / f"{name}.json"
+                p = (
+                    pathlib.Path.home()
+                    / ".local"
+                    / "share"
+                    / "chalilulz"
+                    / "sessions"
+                    / f"{name}.json"
+                )
                 if p.exists():
                     try:
                         msgs = json.loads(p.read_text(encoding="utf-8"))
@@ -1089,12 +1194,16 @@ Guidelines:
             while True:
                 curr_tokens = len(json.dumps(msgs)) // 4
                 while curr_tokens > 60000 and len(msgs) > 5:
-                    print(f"\n {Y}⚠ context large (~{curr_tokens} tokens) — auto-truncating oldest messages{R}")
+                    print(
+                        f"\n {Y}⚠ context large (~{curr_tokens} tokens) — auto-truncating oldest messages{R}"
+                    )
                     msgs.pop(0)
                     curr_tokens = len(json.dumps(msgs)) // 4
-                
+
                 if rounds >= MAX_TOOL_ROUNDS:
-                    print(f"\n {Y}⚠ max tool rounds ({MAX_TOOL_ROUNDS}) reached — stopping to prevent infinite loop{R}\n")
+                    print(
+                        f"\n {Y}⚠ max tool rounds ({MAX_TOOL_ROUNDS}) reached — stopping to prevent infinite loop{R}\n"
+                    )
                     break
                 rounds += 1
                 SP.start()
@@ -1137,4 +1246,4 @@ Guidelines:
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

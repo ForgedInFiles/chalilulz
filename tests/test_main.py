@@ -41,7 +41,7 @@ class TestMainREPL(unittest.TestCase):
         """Test that /q exits the loop"""
         # Should not raise; main should exit cleanly
         try:
-            main()
+            main([])
         except SystemExit:
             pass  # Expected if main calls sys.exit
         # Verify input was called at least once
@@ -55,7 +55,7 @@ class TestMainREPL(unittest.TestCase):
         """Test that /c clears messages"""
         # We'll patch print to suppress output
         with patch("builtins.print"):
-            main()
+            main([])
         # No crash means pass
 
     @patch("builtins.input", side_effect=["/model mistral:small", "/q"])
@@ -67,7 +67,7 @@ class TestMainREPL(unittest.TestCase):
         import chalilulz
 
         with patch("builtins.print"):
-            main()
+            main([])
         self.assertEqual(chalilulz.MODEL, "mistral:small")
         self.assertEqual(chalilulz.PROVIDER, "mistral")
         self.assertEqual(chalilulz.ACTUAL_MODEL, "small")
@@ -81,7 +81,7 @@ class TestMainREPL(unittest.TestCase):
         import chalilulz
 
         with patch("builtins.print") as mock_print:
-            main()
+            main([])
         # Check that print was called with skills information
         calls = [str(c) for c in mock_print.call_args_list]
         # Should mention "Skills:" or similar
@@ -105,7 +105,7 @@ class TestMainREPL(unittest.TestCase):
 
         mock_call.side_effect = capture
         with patch("builtins.print"):
-            main()
+            main([])
         self.assertEqual(len(captured_msgs), 1)
         self.assertEqual(len(captured_msgs[0]), 1)
         self.assertEqual(captured_msgs[0][0]["role"], "user")
@@ -118,7 +118,7 @@ class TestMainREPL(unittest.TestCase):
     def test_api_error_handling(self, mock_sp, mock_sep, mock_call, mock_input):
         """Test that API errors are caught and message popped"""
         with patch("builtins.print"):
-            main()
+            main([])
         mock_call.assert_called()
 
     @patch("builtins.input", side_effect=KeyboardInterrupt)
@@ -129,7 +129,7 @@ class TestMainREPL(unittest.TestCase):
         """Test that Ctrl+C exits gracefully"""
         with patch("builtins.print"):
             try:
-                main()
+                main([])
             except:
                 pass  # main should handle KeyboardInterrupt internally
 
@@ -144,7 +144,7 @@ class TestMainREPL(unittest.TestCase):
         import chalilulz
 
         with patch("builtins.print"):
-            main()
+            main([])
         self.assertEqual(chalilulz.MODEL, "invalid")
         self.assertEqual(chalilulz.PROVIDER, "ollama")  # default provider
 
@@ -157,11 +157,11 @@ class TestMainREPL(unittest.TestCase):
         import chalilulz
 
         with patch("builtins.print"):
-            main()
+            main([])
         self.assertEqual(chalilulz.MODEL, "mistral:small")
         self.assertEqual(chalilulz.PROVIDER, "mistral")
         self.assertEqual(chalilulz.ACTUAL_MODEL, "small")
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main([])
