@@ -11,12 +11,10 @@ This file provides guidelines for AI agents operating in this repository.
 - **Language**: Python 3.8+
 - **Dependencies**: None (pure stdlib)
 
-### Two Versions
-
 | Version | Path | Lines |
 |---------|------|-------|
-| Standard | `chalilulz.py` | 867 |
-| Golfed | `golfed/chalminilulz.py` | 310 |
+| Standard | `chalilulz.py` | 868 |
+| Golfed | `golfed/chalminilulz.py` | 767 |
 
 Both versions provide identical functionality.
 
@@ -24,57 +22,28 @@ Both versions provide identical functionality.
 
 ## Build / Lint / Test Commands
 
-### Running Tests
-
 ```bash
 # Run all tests
 python -m unittest discover -s tests -p 'test_*.py' -v
-
-# Run all tests (short)
-python -m unittest discover -s tests -p 'test_*.py'
 
 # Run specific test file
 python -m unittest tests.test_tools -v
 python -m unittest tests.test_api -v
 python -m unittest tests.test_parsing -v
 python -m unittest tests.test_both_versions -v
+python -m unittest tests.test_main -v
+python -m unittest tests.test_skills -v
+python -m unittest tests.test_utils -v
+python -m unittest tests.test_schema -v
+python -m unittest tests.test_do_tool_calls -v
 
-# Run specific test class
-python -m unittest tests.test_both_versions.TestBothVersionsTools -v
-python -m unittest tests.test_both_versions.TestBothVersionsAPI -v
-
-# Run specific test method
+# Run single test method
 python -m unittest tests.test_tools.TestReadTool.test_read_basic -v
-
-# Run single test from any module
 python -m unittest tests.test_both_versions.TestBothVersionsRead.test_read_chalilulz -v
-```
 
-### Syntax Checking
-
-```bash
-# Check syntax for both versions
-python -m py_compile chalilulz.py
-python -m py_compile golfed/chalminilulz.py
-
-# Check all test files
-python -m py_compile tests/*.py
-```
-
-### Linting
-
-```bash
-# Install ruff
-pip install ruff
-
-# Lint main files
-ruff check chalilulz.py golfed/chalminilulz.py
-
-# Lint tests
-ruff check tests/
-
-# Lint entire project
-ruff check .
+# Syntax & Linting
+python -m py_compile chalilulz.py golfed/chalminilulz.py
+pip install ruff && ruff check .
 ```
 
 ---
@@ -83,17 +52,16 @@ ruff check .
 
 ### General Principles
 
-- **Minimal dependencies**: Use Python stdlib only. No external packages.
-- **Concise code**: Prefer compact, readable implementations.
-- **No comments**: Unless absolutely necessary for clarity.
-- **Error handling**: Tool functions return `f"error:{e}"` strings on failure.
+- **Minimal dependencies**: Use Python stdlib only
+- **Concise code**: Prefer compact, readable implementations
+- **No comments**: Unless absolutely necessary
+- **Error handling**: Tool functions return `f"error:{e}"` strings
 
 ### Formatting
 
-- **Indentation**: 4 spaces (no tabs)
-- **Line length**: Max 100 characters preferred, 120 hard limit
-- **Blank lines**: Two between top-level definitions, one between functions
-- **Golfed version**: Uses 2-space indentation, minified style
+- **Indentation**: 4 spaces (no tabs); golfed version uses 2-space
+- **Line length**: Max 100 chars preferred, 120 hard limit
+- **Blank lines**: Two between top-level definitions
 
 ### Naming Conventions
 
@@ -103,44 +71,17 @@ ruff check .
 | Constants | SCREAMING_SNAKE_CASE | `OLLAMA_HOST`, `SCHEMA` |
 | Classes | PascalCase | `Spin`, `FakeHTTPResponse` |
 | Private functions | _leading_underscore | `_r()`, `_e()` |
-| Golfed short names | Single letters allowed | `_r`, `_w`, `_gl` |
+| Golfed names | Single letters allowed | `_r`, `_w`, `_gl` |
 
 ### Imports
 
-- **Order**: stdlib → third-party → local (not applicable - stdlib only)
-- **Style**: Alphabetical within groups
-- **Golfed**: Combine into single line where possible
+Single line, comma-separated, alphabetically sorted with short aliases:
 
 ```python
-# Standard version
-import argparse
-import glob as G
-import json
-import os
-import pathlib
-import re
-import shutil
-import subprocess
-import sys
-import threading
-import time
-import urllib.request
-import urllib.error
-
-# Golfed version
-import argparse,glob as G,json,os,pathlib,re,shutil,subprocess,sys,threading,time,urllib.request,urllib.error
+import argparse, glob as G, json, os, pathlib, re, shutil, subprocess, sys, threading, time, urllib.request, urllib.error
 ```
 
-### Type Annotations
-
-- Not required but acceptable where it improves clarity
-- Use inline comments for complex type logic
-
 ### Error Handling
-
-- **Tool functions**: Return error strings starting with `error:`
-- **API functions**: Raise `RuntimeError` with descriptive messages
-- **Silent failures**: Where appropriate (e.g., non-critical file operations)
 
 ```python
 def _r(a):
@@ -151,19 +92,50 @@ def _r(a):
         return f"error:{e}"
 ```
 
-### Function Structure
+---
 
-- Keep functions small and focused
-- Single responsibility per function
-- Use early returns for error cases
-- No docstrings unless complex logic requires it
+## Architecture
 
-### Testing Guidelines
+### Tools Dictionary
 
-- Test both versions (chalilulz.py and golfed/chalminilulz.py) when adding features
+```python
+TOOLS = {
+    "read": ("Read file w/ line numbers", {"path": "string", "offset": "integer", "limit": "integer"}, _r),
+    "write": ("Write/create file (auto mkdir)", {"path": "string", "content": "string"}, _w),
+    # Format: (description, params_dict, function)
+}
+OPT = {"offset", "limit", "path", "cwd", "all"}  # optional params
+```
+
+### Supported Providers
+
+| Provider | Prefix | Key Env Var |
+|----------|--------|-------------|
+| OpenRouter | `openrouter:` | `OPENROUTER_API_KEY` |
+| Ollama | `ollama:` (default) | None |
+| Mistral | `mistral:` | `MISTRAL_API_KEY` |
+| Groq | `groq:` | `GROQ_API_KEY` |
+| Gemini | `gemini:` | `GOOGLE_API_KEY` |
+
+### Environment Variables
+
+```bash
+CHALILULZ_MODEL           # Default model slug
+CHALILULZ_OLLAMA_HOST     # Ollama host URL
+OPENROUTER_API_KEY        # OpenRouter API key
+MISTRAL_API_KEY           # Mistral API key
+GROQ_API_KEY              # Groq API key
+GOOGLE_API_KEY            # Gemini API key
+```
+
+---
+
+## Testing Guidelines
+
+- Test both versions when modifying functionality
 - Use `unittest` framework
-- Mock HTTP calls using `@patch("urllib.request.urlopen")`
-- Create temp directories/files with `tempfile` module
+- Mock HTTP calls with `@patch("urllib.request.urlopen")`
+- Create temp directories with `tempfile.mkdtemp()`
 - Clean up in `tearDown()` methods
 
 ```python
@@ -182,17 +154,28 @@ class TestReadTool(unittest.TestCase):
         self.assertIn("Line 1", result)
 ```
 
-### File Organization
+---
+
+## File Organization
 
 ```
-chalilulz.py           # Main application (standard version)
-golfed/
-  chalminilulz.py     # Minified version
+chalilulz.py              # Main application
+golfed/chalminilulz.py    # Minified version
 tests/
-  test_*.py           # Test modules
+  test_both_versions.py   # Cross-version tests
+  test_tools.py           # Tool function tests
+  test_api.py             # API mocking tests
+  test_parsing.py         # Model parsing tests
+  test_main.py            # REPL/command tests
+  test_skills.py          # Skill loading tests
+  test_utils.py           # UI utility tests
+  test_schema.py          # Schema generation tests
+  test_do_tool_calls.py   # Tool execution tests
 ```
 
-### REPL Commands (Runtime)
+---
+
+## REPL Commands (Runtime)
 
 | Command | Description |
 |---------|-------------|
@@ -200,26 +183,6 @@ tests/
 | `/c` | Clear conversation history |
 | `/model <slug>` | Switch LLM model |
 | `/skills` | List loaded skills |
-
-### Tool Functions
-
-All tool functions follow this pattern:
-- Accept dict argument `a` with parameters
-- Return string result or `f"error:{e}"` on failure
-- Log output to stdout for transparency
-
----
-
-## Key Files Reference
-
-| File | Purpose |
-|------|---------|
-| `chalilulz.py` | Main CLI application |
-| `golfed/chalminilulz.py` | Minified version |
-| `tests/test_both_versions.py` | Cross-version tests |
-| `tests/test_tools.py` | Tool function tests |
-| `tests/test_api.py` | API mocking tests |
-| `tests/test_parsing.py` | Model parsing tests |
 
 ---
 
