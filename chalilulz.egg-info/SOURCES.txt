@@ -1,6 +1,5 @@
 README.md
 pyproject.toml
-setup.py
 chalilulz/__init__.py
 chalilulz.egg-info/PKG-INFO
 chalilulz.egg-info/SOURCES.txt

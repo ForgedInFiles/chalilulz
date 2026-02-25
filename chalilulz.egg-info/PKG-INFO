@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: chalilulz
-Version: 0.0.1b4
+Version: 0.0.1b5
 Summary: Agentic coding CLI with multi-provider LLM support
 Author-email: Chalilulz <chalilulz@example.com>
 License: MIT
@@ -23,7 +23,6 @@ Description-Content-Type: text/markdown
 Provides-Extra: all
 Provides-Extra: dev
 Requires-Dist: ruff; extra == "dev"
-Dynamic: requires-python
 
 # chalilulz
 

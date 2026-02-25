@@ -3,7 +3,7 @@
 
 import argparse, glob as G, importlib.resources as resources, json, os, pathlib, re, shutil, subprocess, sys, threading, time, urllib.request, urllib.error
 
-__version__ = "0.0.1b5"
+__version__ = "0.0.1b6"
 
 
 # Enable ANSI colors on Windows if needed
@@ -652,9 +652,10 @@ NO_TOOLS_MODELS = set()
 
 
 def read_sse_stream(resp):
+    SP.stop()
     full_msg = {"role": "assistant", "content": ""}
     tool_calls = {}
-    sys.stdout.write(f"\n {C}◆{R} ")
+    sys.stdout.write(f" {C}◆{R} ")
     sys.stdout.flush()
     usage = {}
     for line in resp:
@@ -695,8 +696,9 @@ def read_sse_stream(resp):
 
 
 def read_ndjson_stream(resp):
+    SP.stop()
     full_msg = {"role": "assistant", "content": ""}
-    sys.stdout.write(f"\n {C}◆{R} ")
+    sys.stdout.write(f" {C}◆{R} ")
     sys.stdout.flush()
     usage = {}
     for line in resp:
