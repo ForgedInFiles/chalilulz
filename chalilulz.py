@@ -408,10 +408,12 @@ def run_tool(name, args):
 # ─ agent skills (agentskills.io spec)
 def _skill_dirs():
     cands = [pathlib.Path(os.getcwd())]
-    # walk up to repo root looking for .agents/skills
+    # walk up to repo root looking for skills (agentskills.io spec locations)
     p = pathlib.Path(os.getcwd())
     while True:
         cands.append(p / ".agents" / "skills")
+        cands.append(p / ".github" / "skills")
+        cands.append(p / ".claude" / "skills")
         cands.append(p / ".skills")
         cands.append(p / "skills")
         if (p / ".git").exists() or p.parent == p:
@@ -419,6 +421,8 @@ def _skill_dirs():
         p = p.parent
     cands += [
         pathlib.Path.home() / ".agents" / "skills",
+        pathlib.Path.home() / ".github" / "skills",
+        pathlib.Path.home() / ".claude" / "skills",
         pathlib.Path.home() / ".local" / "share" / "agent-skills",
     ]
     return [d for d in cands if d.is_dir()]
@@ -444,18 +448,28 @@ def load_skills():
     found = {}
     for sd in _skill_dirs():
         for skill_dir in sd.iterdir():
+            if not skill_dir.is_dir():
+                continue
             sm = skill_dir / "SKILL.md"
-            if sm.is_file() and skill_dir.name not in found:
-                try:
-                    fm = _parse_frontmatter(sm.read_text(encoding="utf-8"))
-                    if "name" in fm and "description" in fm:
-                        found[skill_dir.name] = {
-                            "name": fm["name"],
-                            "desc": fm["description"],
-                            "path": str(skill_dir),
-                        }
-                except:
-                    pass
+            if not sm.exists() or skill_dir.name in found:
+                continue
+            try:
+                fm = _parse_frontmatter(sm.read_text(encoding="utf-8"))
+                if "name" not in fm or "description" not in fm:
+                    continue
+                # validate dir name matches frontmatter name (agentskills.io spec)
+                if fm["name"] != skill_dir.name:
+                    continue
+                found[skill_dir.name] = {
+                    "name": fm["name"],
+                    "desc": fm["description"],
+                    "path": str(skill_dir),
+                    "license": fm.get("license", ""),
+                    "allowed_tools": fm.get("allowed-tools", ""),
+                    "compatibility": fm.get("compatibility", ""),
+                }
+            except:
+                pass
     return list(found.values())
 
 
@@ -464,7 +478,14 @@ def skills_prompt(skills):
         return ""
     lines = ["\n## Available Skills (use load_skill to activate full instructions):"]
     for s in skills:
-        lines.append(f"- {s['name']}: {s['desc'][:120]}")
+        parts = [f"- {s['name']}: {s['desc'][:120]}"]
+        if s.get("license"):
+            parts.append(f"  License: {s['license']}")
+        if s.get("allowed_tools"):
+            parts.append(f"  Tools: {s['allowed_tools']}")
+        if s.get("compatibility"):
+            parts.append(f"  Compat: {s['compatibility']}")
+        lines.append("\n".join(parts))
     return "\n".join(lines)
 
 

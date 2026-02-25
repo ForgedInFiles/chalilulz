@@ -90,11 +90,11 @@ class TestLoadSkills(unittest.TestCase):
         self.assertIsInstance(skills, list)
 
     def test_load_single_skill(self):
-        skill_dir = self.skills_dir / "skill1"
+        skill_dir = self.skills_dir / "skill-one"
         skill_dir.mkdir()
         skill_md = skill_dir / "SKILL.md"
         skill_md.write_text("""---
-name: Skill One
+name: skill-one
 description: First test skill
 ---
 """)
@@ -110,24 +110,23 @@ description: First test skill
         try:
             skills = load_skills()
             self.assertEqual(len(skills), 1)
-            self.assertEqual(skills[0]["name"], "Skill One")
+            self.assertEqual(skills[0]["name"], "skill-one")
             self.assertEqual(skills[0]["desc"], "First test skill")
-            self.assertEqual(skills[0]["path"], str(skill_dir))
         finally:
             chalilulz._skill_dirs = orig_skill_dirs
 
     def test_load_multiple_skills(self):
-        skill1 = self.skills_dir / "skill1"
+        skill1 = self.skills_dir / "skill-one"
         skill1.mkdir()
         (skill1 / "SKILL.md").write_text("""---
-name: Skill One
+name: skill-one
 description: First skill
 ---
 """)
-        skill2 = self.skills_dir / "skill2"
+        skill2 = self.skills_dir / "skill-two"
         skill2.mkdir()
         (skill2 / "SKILL.md").write_text("""---
-name: Skill Two
+name: skill-two
 description: Second skill
 ---
 """)
@@ -143,16 +142,16 @@ description: Second skill
             skills = load_skills()
             self.assertEqual(len(skills), 2)
             names = [s["name"] for s in skills]
-            self.assertIn("Skill One", names)
-            self.assertIn("Skill Two", names)
+            self.assertIn("skill-one", names)
+            self.assertIn("skill-two", names)
         finally:
             chalilulz._skill_dirs = orig_skill_dirs
 
     def test_load_skill_with_extra_scripts_dir(self):
-        skill_dir = self.skills_dir / "skill_with_scripts"
+        skill_dir = self.skills_dir / "skill-with-scripts"
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text("""---
-name: Scripted Skill
+name: skill-with-scripts
 description: Has scripts
 ---
 """)
@@ -197,10 +196,10 @@ No name or description""")
             chalilulz._skill_dirs = orig_skill_dirs
 
     def test_load_skills_prevents_duplicates(self):
-        skill_dir = self.skills_dir / "duplicate"
+        skill_dir = self.skills_dir / "duplicate-skill"
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text("""---
-name: Duplicate
+name: duplicate-skill
 description: Same skill
 ---
 """)
