@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: chalilulz
-Version: 0.0.1b0
+Version: 0.0.1b4
 Summary: Agentic coding CLI with multi-provider LLM support
 Author-email: Chalilulz <chalilulz@example.com>
 License: MIT
@@ -20,6 +20,7 @@ Classifier: Programming Language :: Python :: 3.12
 Classifier: Topic :: Software Development :: Interpreters
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
+Provides-Extra: all
 Provides-Extra: dev
 Requires-Dist: ruff; extra == "dev"
 Dynamic: requires-python
@@ -55,7 +56,7 @@ Dynamic: requires-python
 ### Quick Install (pip)
 
 ```bash
-# Install globally from PyPI (coming soon)
+# Install globally
 pip install chalilulz
 
 # Or install from source

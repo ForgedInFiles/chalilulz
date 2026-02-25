@@ -3,6 +3,8 @@
 
 import argparse, glob as G, importlib.resources as resources, json, os, pathlib, re, shutil, subprocess, sys, threading, time, urllib.request, urllib.error
 
+__version__ = "0.0.1b4"
+
 
 # Enable ANSI colors on Windows if needed
 def _enable_windows_ansi():
@@ -40,58 +42,63 @@ I = "\033[3m"
 
 # ─ args
 def _get_default_args():
+    conf_path = pathlib.Path.home() / ".config" / "chalilulz" / "config.json"
+    conf = {}
+    try:
+        if conf_path.exists():
+            with open(conf_path, "r", encoding="utf-8") as f:
+                conf = json.load(f)
+    except Exception:
+        pass
+
     class DefaultArgs:
-        model = os.getenv(
+        model = conf.get("model") or os.getenv(
             "CHALILULZ_MODEL", "openrouter:arcee-ai/trinity-large-preview:free"
         )
-        ollama_host = os.getenv("CHALILULZ_OLLAMA_HOST", "http://localhost:11434")
-        mistral_key = os.getenv("MISTRAL_API_KEY", "")
-        groq_key = os.getenv("GROQ_API_KEY", "")
-        gemini_key = os.getenv("GOOGLE_API_KEY", "")
-        mistral_host = os.getenv("MISTRAL_HOST", "https://api.mistral.ai/v1")
-        groq_host = os.getenv("GROQ_HOST", "https://api.groq.com/openai/v1")
-        gemini_host = os.getenv(
+        ollama_host = conf.get("ollama_host") or os.getenv("CHALILULZ_OLLAMA_HOST", "http://localhost:11434")
+        mistral_key = conf.get("mistral_key") or os.getenv("MISTRAL_API_KEY", "")
+        groq_key = conf.get("groq_key") or os.getenv("GROQ_API_KEY", "")
+        gemini_key = conf.get("gemini_key") or os.getenv("GOOGLE_API_KEY", "")
+        mistral_host = conf.get("mistral_host") or os.getenv("MISTRAL_HOST", "https://api.mistral.ai/v1")
+        groq_host = conf.get("groq_host") or os.getenv("GROQ_HOST", "https://api.groq.com/openai/v1")
+        gemini_host = conf.get("gemini_host") or os.getenv(
             "GEMINI_HOST", "https://generativelanguage.googleapis.com/v1beta/openai"
         )
+        yes = conf.get("yes", False)
 
     return DefaultArgs()
 
 
 if __name__ == "__main__":
+    _def = _get_default_args()
     A = argparse.ArgumentParser(prog="chalilulz")
+    A.add_argument("--version", "-v", action="version", version=f"%(prog)s {__version__}")
     A.add_argument(
-        "--model", "-m", default="openrouter:arcee-ai/trinity-large-preview:free"
+        "--model", "-m", default=_def.model
     )
     A.add_argument(
-        "--ollama-host", default="http://localhost:11434", help="Ollama API host"
+        "--ollama-host", default=_def.ollama_host, help="Ollama API host"
     )
     A.add_argument(
-        "--mistral-key",
-        default=os.environ.get("MISTRAL_API_KEY", ""),
-        help="Mistral API key",
+        "--mistral-key", default=_def.mistral_key, help="Mistral API key"
     )
     A.add_argument(
-        "--groq-key", default=os.environ.get("GROQ_API_KEY", ""), help="Groq API key"
+        "--groq-key", default=_def.groq_key, help="Groq API key"
     )
     A.add_argument(
-        "--gemini-key",
-        default=os.environ.get("GOOGLE_API_KEY", ""),
-        help="Google Gemini API key",
+        "--gemini-key", default=_def.gemini_key, help="Google Gemini API key"
     )
     A.add_argument(
-        "--mistral-host",
-        default="https://api.mistral.ai/v1",
-        help="Mistral API base URL",
+        "--mistral-host", default=_def.mistral_host, help="Mistral API base URL"
     )
     A.add_argument(
-        "--groq-host",
-        default="https://api.groq.com/openai/v1",
-        help="Groq API base URL",
+        "--groq-host", default=_def.groq_host, help="Groq API base URL"
     )
     A.add_argument(
-        "--gemini-host",
-        default="https://generativelanguage.googleapis.com/v1beta/openai",
-        help="Gemini OpenAI-compatible base URL",
+        "--gemini-host", default=_def.gemini_host, help="Gemini OpenAI-compatible base URL"
+    )
+    A.add_argument(
+        "--yes", "-y", action="store_true", default=_def.yes, help="Auto-approve tool execution"
     )
     ARGS = A.parse_args()
 else:
@@ -106,12 +113,14 @@ GROQ_KEY = ARGS.groq_key
 GROQ_HOST = ARGS.groq_host
 GEMINI_KEY = ARGS.gemini_key
 GEMINI_HOST = ARGS.gemini_host
+AUTO_APPROVE = getattr(ARGS, "yes", False)
 
 
 # ─ tools
 def _r(a):
     try:
-        ls = open(a["path"], encoding="utf-8", errors="replace").readlines()
+        with open(a["path"], encoding="utf-8", errors="replace") as f:
+            ls = f.readlines()
         o, l = a.get("offset", 0), a.get("limit", 9999)
         return "".join(f"{o + i + 1:5}│{ln}" for i, ln in enumerate(ls[o : o + l]))
     except Exception as e:
@@ -121,7 +130,8 @@ def _r(a):
 def _w(a):
     try:
         pathlib.Path(a["path"]).parent.mkdir(parents=True, exist_ok=True)
-        open(a["path"], "w", encoding="utf-8").write(a["content"])
+        with open(a["path"], "w", encoding="utf-8") as f:
+            f.write(a["content"])
         return f"wrote {len(a['content'])}B"
     except Exception as e:
         return f"error:{e}"
@@ -129,19 +139,45 @@ def _w(a):
 
 def _e(a):
     try:
-        t = open(a["path"], encoding="utf-8").read()
+        with open(a["path"], encoding="utf-8") as f:
+            t = f.read()
         o, n = a["old"], a["new"]
         if o not in t:
             return "error:old_string not found"
         c = t.count(o)
         if not a.get("all") and c > 1:
             return f"error:{c} hits — use all=true"
-        open(a["path"], "w", encoding="utf-8").write(
-            t.replace(o, n) if a.get("all") else t.replace(o, n, 1)
-        )
+        with open(a["path"], "w", encoding="utf-8") as f:
+            f.write(t.replace(o, n) if a.get("all") else t.replace(o, n, 1))
         return f"ok({c if a.get('all') else 1} replaced)"
     except Exception as e:
         return f"error:{e}"
+
+
+def _me(a):
+    try:
+        with open(a["path"], encoding="utf-8") as f:
+            t = f.read()
+        rep = 0
+        edits = json.loads(a["edits"]) if isinstance(a["edits"], str) else a["edits"]
+        for e in edits:
+            o, n = e.get("old", ""), e.get("new", "")
+            if o and o in t:
+                t = t.replace(o, n, 1)
+                rep += 1
+        with open(a["path"], "w", encoding="utf-8") as f:
+            f.write(t)
+        return f"ok({rep} replaced)"
+    except Exception as e:
+        return f"error:{e}"
+
+
+def _ig(p):
+    """Check if path is ignored (simple/common ignores)"""
+    parts = pathlib.Path(p).parts
+    for x in {".git", "__pycache__", "node_modules", "venv", ".venv", ".ruff_cache", "dist", "build", ".pytest_cache"}:
+        if x in parts: return True
+    return False
 
 
 def _gl(a):
@@ -151,7 +187,7 @@ def _gl(a):
         return (
             "\n".join(
                 sorted(
-                    G.glob(p, recursive=True),
+                    (f for f in G.glob(p, recursive=True) if not _ig(f)),
                     key=lambda f: os.path.getmtime(f) if os.path.isfile(f) else 0,
                     reverse=True,
                 )
@@ -167,10 +203,13 @@ def _gp(a):
         rx = re.compile(a["pat"])
         h = []
         for fp in G.glob(a.get("path", ".") + "/**", recursive=True):
+            if _ig(fp):
+                continue
             try:
-                for i, ln in enumerate(open(fp, encoding="utf-8", errors="replace"), 1):
-                    if rx.search(ln):
-                        h.append(f"{fp}:{i}:{ln.rstrip()}")
+                with open(fp, encoding="utf-8", errors="replace") as f:
+                    for i, ln in enumerate(f, 1):
+                        if rx.search(ln):
+                            h.append(f"{fp}:{i}:{ln.rstrip()}")
             except:
                 pass
         return "\n".join(h[:100]) or "none"
@@ -180,24 +219,24 @@ def _gp(a):
 
 def _b(a):
     try:
-        p = subprocess.Popen(
+        with subprocess.Popen(
             a["cmd"],
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             cwd=a.get("cwd"),
-        )
-        out = []
-        for ln in iter(p.stdout.readline, ""):
-            print(f"  {D}│{ln.rstrip()}{R}", flush=True)
-            out.append(ln)
-        try:
-            p.wait(timeout=120)
-        except subprocess.TimeoutExpired:
-            p.kill()
-            out.append("(timeout)")
-        return ("".join(out).strip() or "(empty)") + f"\n[exit {p.returncode}]"
+        ) as p:
+            out = []
+            for ln in iter(p.stdout.readline, ""):
+                print(f"  {D}│{ln.rstrip()}{R}", flush=True)
+                out.append(ln)
+            try:
+                p.wait(timeout=120)
+            except subprocess.TimeoutExpired:
+                p.kill()
+                out.append("(timeout)")
+            return ("".join(out).strip() or "(empty)") + f"\n[exit {p.returncode}]"
     except Exception as e:
         return f"error:{e}"
 
@@ -262,8 +301,9 @@ def _fd(a):
                 str(p)
                 for p in sorted(
                     pathlib.Path(a.get("path", ".")).rglob(a.get("pat", "*"))
-                )[:200]
-            )
+                )
+                if not _ig(p)
+            )[:2000]
             or "none"
         )
     except Exception as e:
@@ -313,6 +353,11 @@ TOOLS = {
         {"path": "string", "old": "string", "new": "string", "all": "boolean"},
         _e,
     ),
+    "multi_edit": (
+        "Replace multiple blocks. edits is JSON array of {old,new} objects",
+        {"path": "string", "edits": "string"},
+        _me,
+    ),
     "glob": (
         "Find files by glob sorted by mtime",
         {"pat": "string", "path": "string"},
@@ -329,7 +374,14 @@ TOOLS = {
     "load_skill": ("Load full skill instructions by name", {"name": "string"}, _sk),
 }
 # optional params (types without required enforcement)
-OPT = {"offset", "limit", "path", "cwd", "all"}
+OPT = {"offset", "limit", "cwd", "all"}
+# per-tool optional overrides (params that are optional for specific tools)
+OPT_PARAMS = {
+    "glob": {"path"},
+    "grep": {"path"},
+    "ls": {"path"},
+    "find": {"path"},
+}
 
 
 def mk_schema():
@@ -337,9 +389,10 @@ def mk_schema():
     for name, (desc, params, _) in TOOLS.items():
         props = {}
         req = []
+        tool_opt = OPT | OPT_PARAMS.get(name, set())
         for k, v in params.items():
             props[k] = {"type": v}
-            if k not in OPT:
+            if k not in tool_opt:
                 req.append(k)
         out.append(
             {
@@ -402,6 +455,11 @@ def get_required_key(provider):
 def run_tool(name, args):
     if name not in TOOLS:
         return f"error:unknown tool {name!r}"
+    if not AUTO_APPROVE and name in ("bash", "write", "edit", "rm", "mv", "cp"):
+        print(f"\n {Y}⚠ Tool '{name}' requested with args: {args}{R}")
+        ans = input(f" {Bo}Allow? [y/N]: {R}").strip().lower()
+        if ans not in ("y", "yes"):
+            return "error:user denied tool execution"
     return TOOLS[name][2](args)
 
 
@@ -593,12 +651,87 @@ Available tools:\n""" + "\n".join(
 NO_TOOLS_MODELS = set()
 
 
+def read_sse_stream(resp):
+    full_msg = {"role": "assistant", "content": ""}
+    tool_calls = {}
+    sys.stdout.write(f"\n {C}◆{R} ")
+    sys.stdout.flush()
+    usage = {}
+    for line in resp:
+        line = line.decode().strip()
+        if not line.startswith("data: ") or line == "data: [DONE]":
+            continue
+        try:
+            data = json.loads(line[6:])
+            if "error" in data:
+                raise RuntimeError(data["error"].get("message", str(data["error"])))
+            if "usage" in data and data["usage"]:
+                usage = data["usage"]
+            if not data.get("choices"):
+                continue
+            delta = data["choices"][0].get("delta", {})
+            if "content" in delta and delta["content"]:
+                chunk = delta["content"]
+                full_msg["content"] += chunk
+                sys.stdout.write(chunk)
+                sys.stdout.flush()
+            if "tool_calls" in delta:
+                for tc in delta["tool_calls"]:
+                    idx = tc["index"]
+                    if idx not in tool_calls:
+                        tool_calls[idx] = {"id": tc.get("id", ""), "type": "function", "function": {"name": "", "arguments": ""}}
+                    if tc.get("id"): tool_calls[idx]["id"] = tc["id"]
+                    fn = tc.get("function", {})
+                    if fn.get("name"): tool_calls[idx]["function"]["name"] += fn["name"]
+                    if fn.get("arguments"): tool_calls[idx]["function"]["arguments"] += fn["arguments"]
+        except Exception:
+            pass
+    if tool_calls:
+        full_msg["tool_calls"] = [tool_calls[i] for i in sorted(tool_calls.keys())]
+    if full_msg["content"]:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+    return {"choices": [{"message": full_msg}], "usage": usage}
+
+
+def read_ndjson_stream(resp):
+    full_msg = {"role": "assistant", "content": ""}
+    sys.stdout.write(f"\n {C}◆{R} ")
+    sys.stdout.flush()
+    usage = {}
+    for line in resp:
+        line = line.decode().strip()
+        if not line:
+            continue
+        try:
+            data = json.loads(line)
+            if "error" in data:
+                raise RuntimeError(data["error"].get("message", str(data["error"])))
+            msg = data.get("message", {})
+            if "content" in msg and msg["content"]:
+                chunk = msg["content"]
+                full_msg["content"] += chunk
+                sys.stdout.write(chunk)
+                sys.stdout.flush()
+            if "tool_calls" in msg and msg["tool_calls"]:
+                full_msg["tool_calls"] = msg["tool_calls"]
+            if data.get("done"):
+                usage = {"prompt_tokens": data.get("prompt_eval_count", 0), "completion_tokens": data.get("eval_count", 0)}
+        except Exception:
+            pass
+    if full_msg["content"]:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+    return {"choices": [{"message": full_msg}], "usage": usage}
+
+
 def call_openrouter(msgs, sysp, force_no_tools=False):
     use_tools = not force_no_tools and ACTUAL_MODEL not in NO_TOOLS_MODELS
     body = {
         "model": ACTUAL_MODEL,
         "messages": [{"role": "system", "content": sysp}] + msgs,
         "temperature": 0.3,
+        "stream": True,
     }
     if use_tools:
         body["tools"] = SCHEMA
@@ -615,7 +748,9 @@ def call_openrouter(msgs, sysp, force_no_tools=False):
         method="POST",
     )
     try:
-        resp = json.loads(urllib.request.urlopen(req, timeout=120).read())
+        resp = urllib.request.urlopen(req, timeout=120)
+        result = read_sse_stream(resp)
+        return result, use_tools
     except urllib.error.HTTPError as e:
         raw = e.read().decode()
         if e.code == 400 and use_tools:
@@ -623,9 +758,7 @@ def call_openrouter(msgs, sysp, force_no_tools=False):
             print(f" {Y}⚠ model doesn't support tools — switching to XML mode{R}")
             return call_openrouter(msgs, sysp, force_no_tools=True)
         raise RuntimeError(f"HTTP {e.code}: {raw[:300]}")
-    if "error" in resp:
-        raise RuntimeError(resp["error"].get("message", str(resp["error"])))
-    return resp, use_tools
+
 
 
 def call_ollama(msgs, sysp, force_no_tools=False):
@@ -633,7 +766,7 @@ def call_ollama(msgs, sysp, force_no_tools=False):
     body = {
         "model": ACTUAL_MODEL,
         "messages": [{"role": "system", "content": sysp}] + msgs,
-        "stream": False,
+        "stream": True,
         "options": {"temperature": 0.3},
     }
     if use_tools:
@@ -646,7 +779,8 @@ def call_ollama(msgs, sysp, force_no_tools=False):
         method="POST",
     )
     try:
-        resp = json.loads(urllib.request.urlopen(req, timeout=120).read())
+        resp = urllib.request.urlopen(req, timeout=120)
+        return read_ndjson_stream(resp), use_tools
     except urllib.error.HTTPError as e:
         raw = e.read().decode()
         if e.code == 400 and use_tools:
@@ -654,17 +788,7 @@ def call_ollama(msgs, sysp, force_no_tools=False):
             print(f" {Y}⚠ model doesn't support tools — switching to XML mode{R}")
             return call_ollama(msgs, sysp, force_no_tools=True)
         raise RuntimeError(f"HTTP {e.code}: {raw[:300]}")
-    if "error" in resp:
-        raise RuntimeError(resp["error"].get("message", str(resp["error"])))
-    # Transform Ollama response to OpenRouter-compatible format
-    transformed = {
-        "choices": [{"message": resp["message"]}],
-        "usage": {
-            "prompt_tokens": resp.get("prompt_eval_count", 0),
-            "completion_tokens": resp.get("eval_count", 0),
-        },
-    }
-    return transformed, use_tools
+
 
 
 def call_openai_compatible(
@@ -675,6 +799,7 @@ def call_openai_compatible(
         "model": ACTUAL_MODEL,
         "messages": [{"role": "system", "content": sysp}] + msgs,
         "temperature": 0.3,
+        "stream": True,
     }
     if use_tools:
         body["tools"] = SCHEMA
@@ -692,7 +817,8 @@ def call_openai_compatible(
         method="POST",
     )
     try:
-        resp = json.loads(urllib.request.urlopen(req, timeout=120).read())
+        resp = urllib.request.urlopen(req, timeout=120)
+        return read_sse_stream(resp), use_tools
     except urllib.error.HTTPError as e:
         raw = e.read().decode()
         if e.code == 400 and use_tools:
@@ -707,9 +833,7 @@ def call_openai_compatible(
                 auth_header=auth_header,
             )
         raise RuntimeError(f"HTTP {e.code}: {raw[:300]}")
-    if "error" in resp:
-        raise RuntimeError(resp["error"].get("message", str(resp["error"])))
-    return resp, use_tools
+
 
 
 def call_mistral(msgs, sysp, force_no_tools=False):
@@ -769,6 +893,8 @@ def rmd(t):
     t = re.sub(r"`([^`\n]+)`", f"{Y}\\1{R}", t)
     t = re.sub(r"\*\*(.+?)\*\*", f"{Bo}\\1{R}", t)
     t = re.sub(r"\*([^*\n]+)\*", f"{I}\\1{R}", t)
+    t = re.sub(r"^(#{1,6})\s+(.+)$", lambda m: f"{Bo}{C}{m.group(1)} {m.group(2)}{R}", t, flags=re.M)
+    t = re.sub(r"^(\s*[-*])\s+(.+)$", lambda m: f"{Bo}{M}{m.group(1)}{R} {m.group(2)}", t, flags=re.M)
     return t
 
 
@@ -832,22 +958,53 @@ def _do_tool_calls(calls, msgs, xml_mode):
 
 # ─ main
 def main():
-    global MODEL
+    try:
+        import readline, glob
+        COMMANDS = ["/model ", "/skills", "/save ", "/load ", "/yes", "/no", "/q", "/c", "/help", "exit", "quit"]
+        def completer(text, state):
+            line = readline.get_line_buffer()
+            if not line or line.startswith("/"):
+                matches = [c for c in COMMANDS if c.startswith(text)]
+            else:
+                matches = glob.glob(text + '*')
+                matches = [m + os.sep if os.path.isdir(m) else m for m in matches]
+            try:
+                return matches[state]
+            except IndexError:
+                return None
+        readline.set_completer(completer)
+        readline.parse_and_bind("tab: complete")
+        readline.set_completer_delims(" \t\n;")
+    except ImportError:
+        pass
+
+    global MODEL, AUTO_APPROVE
     # Check API key for current provider
     required_key = get_required_key(PROVIDER)
     if required_key is not None and not required_key:
         print(f"\n {Re}✗ set API key for {PROVIDER} provider{R}\n")
         sys.exit(1)
+        
+    MAX_TOOL_ROUNDS = 25
     cwd = os.getcwd()
     skills = load_skills()
     sep("═", Bo + C)
     print(f" {Bo}◆ chalilulz{R}  {D}{MODEL}{R}")
     print(f" {D}cwd:{cwd}  skills:{len(skills)}{R}")
     sep("═", Bo + C)
-    print(f" {D}/q quit  /c clear  /model <slug>  /skills list{R}\n")
+    print(f" {D}/q quit  /c clear  /model <slug>  /skills list  /help{R}\n")
     SP_PART = skills_prompt(skills)
-    SYS = f"""Expert concise coding assistant. cwd:{cwd} os:{sys.platform}
-Prefer minimal edits. No filler. Think step by step silently.{SP_PART}"""
+    SYS = f"""You are Chalilulz, an expert, concise agentic coding assistant.
+Environment: OS={sys.platform}, CWD={cwd}
+
+Guidelines:
+1. Be extremely concise. No filler, pleasantries, or wrapping text.
+2. Think step-by-step silently before acting.
+3. Use tools efficiently. Chain them together to analyze, plan, and execute.
+4. When writing/editing files, ensure you understand the surrounding code. Use the read tool first if unsure.
+5. Stop and ask the user for clarification if you are stuck or need architectural decisions.
+6. Do not enter infinite loops. If you encounter the same error multiple times, ask the user for help.
+{SP_PART}"""
     XML_SYS = SYS + XML_TOOL_INST
     msgs = []
     while True:
@@ -866,6 +1023,44 @@ Prefer minimal edits. No filler. Think step by step silently.{SP_PART}"""
             if ui == "/c":
                 msgs = []
                 print(f"\n {Gr}✓ cleared{R}")
+                continue
+            if ui == "/yes":
+                AUTO_APPROVE = True
+                print(f"\n {Gr}✓ auto-approve enabled{R}")
+                continue
+            if ui == "/no":
+                AUTO_APPROVE = False
+                print(f"\n {Gr}✓ auto-approve disabled{R}")
+                continue
+            if ui.startswith("/save "):
+                name = ui[6:].strip()
+                p = pathlib.Path.home() / ".local" / "share" / "chalilulz" / "sessions" / f"{name}.json"
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(json.dumps(msgs), encoding="utf-8")
+                print(f"\n {Gr}✓ saved session to {name}{R}")
+                continue
+            if ui.startswith("/load "):
+                name = ui[6:].strip()
+                p = pathlib.Path.home() / ".local" / "share" / "chalilulz" / "sessions" / f"{name}.json"
+                if p.exists():
+                    try:
+                        msgs = json.loads(p.read_text(encoding="utf-8"))
+                        print(f"\n {Gr}✓ loaded session {name} ({len(msgs)} msgs){R}")
+                    except Exception as e:
+                        print(f"\n {Re}✗ failed to load session: {e}{R}")
+                else:
+                    print(f"\n {Re}✗ session {name} not found{R}")
+                continue
+            if ui == "/help":
+                print(f"\n {Bo}Commands:{R}")
+                print(f"  {C}/q, quit, exit{R}  Quit")
+                print(f"  {C}/c{R}               Clear session")
+                print(f"  {C}/model <slug>{R}    Change model (e.g., ollama:llama3)")
+                print(f"  {C}/skills{R}          List loaded skills")
+                print(f"  {C}/yes, /no{R}        Toggle auto-approve for tools")
+                print(f"  {C}/save <name>{R}     Save current session")
+                print(f"  {C}/load <name>{R}     Load a saved session")
+                print(f"  {C}/help{R}            Show this help")
                 continue
             if ui.startswith("/model "):
                 new_model = ui[7:].strip()
@@ -888,7 +1083,18 @@ Prefer minimal edits. No filler. Think step by step silently.{SP_PART}"""
                 continue
             msgs.append({"role": "user", "content": ui})
             sep()
+            rounds = 0
             while True:
+                curr_tokens = len(json.dumps(msgs)) // 4
+                while curr_tokens > 60000 and len(msgs) > 5:
+                    print(f"\n {Y}⚠ context large (~{curr_tokens} tokens) — auto-truncating oldest messages{R}")
+                    msgs.pop(0)
+                    curr_tokens = len(json.dumps(msgs)) // 4
+                
+                if rounds >= MAX_TOOL_ROUNDS:
+                    print(f"\n {Y}⚠ max tool rounds ({MAX_TOOL_ROUNDS}) reached — stopping to prevent infinite loop{R}\n")
+                    break
+                rounds += 1
                 SP.start()
                 try:
                     resp, use_tools = call_api(
@@ -911,16 +1117,12 @@ Prefer minimal edits. No filler. Think step by step silently.{SP_PART}"""
                 calls = msg.get("tool_calls") or []
                 if use_tools:
                     msgs.append(msg)
-                    if text:
-                        print(f"\n {C}◆{R} {rmd(text)}\n")
                     if not calls:
                         break
                     _do_tool_calls(calls, msgs, xml_mode=False)
                 else:
-                    # xml mode: strip tool_call tags from display
+                    # xml mode: strip tool_call tags from display just to clean history if needed
                     display = TC_RE.sub("", text).strip()
-                    if display:
-                        print(f"\n {C}◆{R} {rmd(display)}\n")
                     xml_calls = parse_xml_calls(text)
                     msgs.append({"role": "assistant", "content": text})
                     if not xml_calls:

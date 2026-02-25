@@ -28,12 +28,26 @@ from chalilulz import (
 
 class FakeHTTPResponse:
     def __init__(self, data, status=200):
+        self.data_dict = data
         self.data = json.dumps(data).encode()
         self.status = status
         self._reason = "OK"
 
     def read(self):
         return self.data
+
+    def __iter__(self):
+        if "message" in self.data_dict and "choices" not in self.data_dict:
+            yield json.dumps({"message": self.data_dict["message"], "done": False}).encode() + b"\n"
+            yield json.dumps({"done": True, "prompt_eval_count": self.data_dict.get("prompt_eval_count", 0), "eval_count": self.data_dict.get("eval_count", 0)}).encode() + b"\n"
+        elif "choices" in self.data_dict:
+            delta = self.data_dict["choices"][0].get("message", {})
+            yield b"data: " + json.dumps({"choices": [{"delta": delta}]}).encode() + b"\n"
+            if "usage" in self.data_dict:
+                yield b"data: " + json.dumps({"usage": self.data_dict["usage"]}).encode() + b"\n"
+            yield b"data: [DONE]\n"
+        else:
+            yield self.data + b"\n"
 
     def __enter__(self):
         return self

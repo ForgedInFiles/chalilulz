@@ -142,6 +142,25 @@ class TestGlobTool(unittest.TestCase):
         self.assertGreaterEqual(len(files), 2)
 
 
+class TestMultiEditTool(unittest.TestCase):
+    def setUp(self):
+        self.test_dir = tempfile.mkdtemp()
+        self.test_file = os.path.join(self.test_dir, "test.txt")
+        with open(self.test_file, "w") as f:
+            f.write("A\nB\nC\nD\nE")
+
+    def tearDown(self):
+        shutil.rmtree(self.test_dir)
+
+    def test_multi_edit_simple(self):
+        from chalilulz import _me
+        edits = json.dumps([{"old": "B", "new": "X"}, {"old": "D", "new": "Y"}])
+        result = _me({"path": self.test_file, "edits": edits})
+        self.assertEqual(result, "ok(2 replaced)")
+        with open(self.test_file, "r") as f:
+            self.assertEqual(f.read(), "A\nX\nC\nY\nE")
+
+
 class TestGrepTool(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
