@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """chalilulz — agentic coding cli · openrouter · agent skills"""
 
-import argparse, glob as G, json, os, pathlib, re, shutil, subprocess, sys, threading, time, urllib.request, urllib.error
+import argparse, glob as G, importlib.resources as resources, json, os, pathlib, re, shutil, subprocess, sys, threading, time, urllib.request, urllib.error
 
 
 # Enable ANSI colors on Windows if needed
@@ -405,8 +405,54 @@ def run_tool(name, args):
     return TOOLS[name][2](args)
 
 
+# ─ bundled skills support
+def _get_bundled_skills_dir():
+    """Return path to skills bundled in the installed package, or None."""
+    try:
+        if hasattr(resources, "files"):  # Python 3.9+
+            p = resources.files("chalilulz") / "skills"
+        else:  # Python 3.8 fallback
+            import importlib.resources
+
+            p = pathlib.Path(importlib.resources.__path__[0]) / "chalilulz" / "skills"
+        return p if p.is_dir() else None
+    except:
+        return None
+
+
+def _ensure_global_skills():
+    """Install bundled skills to global location on first run."""
+    bundled = _get_bundled_skills_dir()
+    if not bundled:
+        return  # Not installed as package or no bundled skills
+
+    global_dir = pathlib.Path.home() / ".local" / "share" / "chalilulz" / "skills"
+    marker = global_dir / ".installed"
+
+    # Skip if already installed
+    if marker.exists():
+        return
+
+    # Create directory
+    global_dir.mkdir(parents=True, exist_ok=True)
+
+    # Copy each skill
+    for skill_src in bundled.iterdir():
+        if not skill_src.is_dir():
+            continue
+        skill_dst = global_dir / skill_src.name
+        if skill_dst.exists():
+            shutil.rmtree(skill_dst)
+        shutil.copytree(skill_src, skill_dst)
+
+    # Create marker file
+    marker.touch()
+
+
 # ─ agent skills (agentskills.io spec)
 def _skill_dirs():
+    _ensure_global_skills()  # Install bundled skills if needed
+
     cands = [pathlib.Path(os.getcwd())]
     # walk up to repo root looking for skills (agentskills.io spec locations)
     p = pathlib.Path(os.getcwd())
@@ -424,6 +470,7 @@ def _skill_dirs():
         pathlib.Path.home() / ".github" / "skills",
         pathlib.Path.home() / ".claude" / "skills",
         pathlib.Path.home() / ".local" / "share" / "agent-skills",
+        pathlib.Path.home() / ".local" / "share" / "chalilulz" / "skills",
     ]
     return [d for d in cands if d.is_dir()]
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "chalilulz"
-version = "0.0.1b2"
+version = "0.0.1b3"
 description = "Agentic coding CLI with multi-provider LLM support"
 readme = "README.md"
 license = {text = "MIT"}
@@ -35,8 +35,15 @@ Homepage = "https://github.com/ForgedInFiles/chalilulz"
 Repository = "https://github.com/ForgedInFiles/chalilulz"
 
 [project.optional-dependencies]
+all = []  # placeholder for compatibility, installs all bundled skills
 dev = ["ruff"]
+
+[tool.setuptools]
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["chalilulz*"]
+
+[tool.setuptools.package-data]
+chalilulz = ["skills/*/*", "skills/*/scripts/*"]
