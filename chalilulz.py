@@ -412,6 +412,7 @@ def _skill_dirs():
     p = pathlib.Path(os.getcwd())
     while True:
         cands.append(p / ".agents" / "skills")
+        cands.append(p / ".skills")
         cands.append(p / "skills")
         if (p / ".git").exists() or p.parent == p:
             break

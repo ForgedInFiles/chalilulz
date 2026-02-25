@@ -2,32 +2,25 @@
 name: code-review
 description: Reviews code for bugs, security issues, and best practices
 ---
+
 # Code Review Skill
 
-This skill provides automated code review functionality. It analyzes code files to identify:
+Analyzes code files to identify potential bugs, security vulnerabilities, performance issues, and style violations.
 
-- Potential bugs and logical errors
-- Security vulnerabilities
-- Performance issues
-- Style violations
-- Best practice deviations
+## Quick Start
 
-The skill can be configured to match your project's coding standards and integrates with existing CI/CD pipelines.
+The AI assistant can review code by reading files and providing feedback. Use the `read` tool to access code, then provide analysis.
 
-## Usage
+## Guidelines
 
-Run the review script to analyze your code:
+- Check for syntax errors and bugs
+- Look for security vulnerabilities
+- Identify performance bottlenecks
+- Suggest code style improvements
+- Ensure proper error handling
 
-```bash
-python review.py --path ./src --format md
-```
+## Remember
 
-Options:
-- `--path`: Directory or file to review
-- `--format`: Output format (md, json, html)
-- `--strict`: Enable strict mode with more checks
-- `--exclude`: Patterns to exclude (e.g., "tests/*")
-
-## Output
-
-Provides detailed line-by-line feedback with severity ratings and suggested fixes.
+- Be concise and constructive
+- Focus on actionable improvements
+- Prioritize critical issues first
